@@ -12,12 +12,13 @@ resource "azurerm_kubernetes_cluster" "main" {
   tags                = var.tags
 
   default_node_pool {
-    name                = "default"
-    min_count           = 1
-    max_count           = var.aks_node_count
-    vm_size             = var.aks_node_sku
-    enable_auto_scaling = true
-    zones               = ["1", "2", "3"]
+    name                        = "default"
+    temporary_name_for_rotation = "tmpdefault"
+    min_count                   = 1
+    max_count                   = var.aks_node_count
+    vm_size                     = var.aks_node_sku
+    enable_auto_scaling         = true
+    zones                       = ["1", "2", "3"]
   }
 
   oidc_issuer_enabled = true
