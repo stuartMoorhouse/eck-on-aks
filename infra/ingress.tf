@@ -11,7 +11,8 @@ locals {
   ingress_ip = data.kubernetes_service.app_routing_ingress.status[0].load_balancer[0].ingress[0].ip
 
   ingress_annotations = {
-    "cert-manager.io/cluster-issuer" = "letsencrypt-prod"
+    "cert-manager.io/cluster-issuer"               = "letsencrypt-prod"
+    "nginx.ingress.kubernetes.io/backend-protocol" = "HTTPS"
   }
   ingress_class = "webapprouting.kubernetes.azure.com"
   ingress_deps = [

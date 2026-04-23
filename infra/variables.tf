@@ -35,9 +35,9 @@ variable "cloudflare_zone_id" {
 }
 
 variable "aks_node_count" {
-  description = "Number of AKS nodes"
+  description = "Maximum number of AKS nodes (min is always 1)"
   type        = number
-  default     = 3
+  default     = 6
 }
 
 variable "aks_node_sku" {

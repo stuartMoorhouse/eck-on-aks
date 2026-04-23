@@ -181,5 +181,5 @@ If the apply fails with a name conflict, set a unique `prefix` variable.
 | Stack Monitoring (dedicated monitoring cluster) | Out of scope for this demo |
 | Enterprise licence + autoscaling + per-role PDBs | Licence required |
 | Air-gapped / private registry | Not required in this environment |
-| Dedicated master nodes (3) + dedicated data nodes (3+) | Requires 6+ AKS nodes; combined roles used for 3-node demo |
+| Dedicated master nodes (3) + dedicated data nodes (3+) | Implemented — see NodeSets `master` and `data-hot` |
 | Custom TLS CA | ECK auto-managed self-signed certs are acceptable here |
