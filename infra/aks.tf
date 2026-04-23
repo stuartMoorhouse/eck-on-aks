@@ -17,6 +17,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     max_count           = var.aks_node_count
     vm_size             = var.aks_node_sku
     enable_auto_scaling = true
+    zones               = ["1", "2", "3"]
   }
 
   oidc_issuer_enabled = true
