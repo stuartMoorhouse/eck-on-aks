@@ -1,0 +1,10 @@
+# Copy this file to tags.auto.tfvars and fill in your values.
+# tags.auto.tfvars is gitignored — never commit it.
+
+tags = {
+  division   = "your-division"
+  org        = "your-org"
+  keep-until = "YYYY-MM-DD"
+  team       = "your-team"
+  project    = "your-name"
+}
