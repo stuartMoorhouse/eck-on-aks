@@ -28,66 +28,10 @@ resource "null_resource" "elasticsearch" {
           secureSettings:
           - secretName: elasticsearch-snapshot-credentials
           nodeSets:
-          - name: master
+          - name: default
             count: 3
             config:
-              node.roles: ["master"]
-              node.attr.zone: $${ZONE}
-              cluster.routing.allocation.awareness.attributes: k8s_node_name,zone
-            podTemplate:
-              spec:
-                initContainers:
-                - name: sysctl
-                  securityContext:
-                    privileged: true
-                    runAsUser: 0
-                  command:
-                  - sh
-                  - -c
-                  - sysctl -w vm.max_map_count=1048576
-                containers:
-                - name: elasticsearch
-                  resources:
-                    requests:
-                      memory: "2Gi"
-                      cpu: "1"
-                    limits:
-                      memory: "2Gi"
-                      cpu: "1"
-                  env:
-                  - name: ZONE
-                    valueFrom:
-                      fieldRef:
-                        fieldPath: metadata.annotations['topology.kubernetes.io/zone']
-                  - name: PRE_STOP_ADDITIONAL_WAIT_SECONDS
-                    value: "50"
-                affinity:
-                  podAntiAffinity:
-                    requiredDuringSchedulingIgnoredDuringExecution:
-                    - labelSelector:
-                        matchLabels:
-                          elasticsearch.k8s.elastic.co/cluster-name: elasticsearch
-                      topologyKey: kubernetes.io/hostname
-                topologySpreadConstraints:
-                - maxSkew: 1
-                  topologyKey: topology.kubernetes.io/zone
-                  whenUnsatisfiable: ScheduleAnyway
-                  labelSelector:
-                    matchLabels:
-                      elasticsearch.k8s.elastic.co/cluster-name: elasticsearch
-            volumeClaimTemplates:
-            - metadata:
-                name: elasticsearch-data
-              spec:
-                accessModes:
-                - ReadWriteOnce
-                resources:
-                  requests:
-                    storage: 10Gi
-          - name: data-hot
-            count: 3
-            config:
-              node.roles: ["data_hot", "data_content", "ingest"]
+              node.roles: ["master", "data_hot", "data_content", "ingest"]
               node.attr.zone: $${ZONE}
               cluster.routing.allocation.awareness.attributes: k8s_node_name,zone
             podTemplate:

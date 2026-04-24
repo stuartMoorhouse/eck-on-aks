@@ -6,8 +6,8 @@ managed with Terraform.
 ## Architecture
 
 - **AKS cluster**: 3 nodes (`Standard_D4s_v3`, 4 vCPU / 16 GB), multi-zone
-- **ECK operator**: Manages Elasticsearch, Kibana, Fleet Server, APM Server
-- **Elasticsearch**: 3-node cluster, all roles combined (master + data_hot + ingest)
+- **ECK operator**: v3.3.1, manages Elasticsearch and Kibana
+- **Elasticsearch**: 3-node cluster, all nodes master-eligible + data (combined roles per Elastic docs best practice for clusters of this size)
 - **DNS**: Azure DNS zone delegated from Cloudflare; `*.eck-on-aks.cascavel-security.net`
 - **TLS**: Let's Encrypt via cert-manager + Azure App Routing ingress
 - **Snapshots**: Azure Blob Storage, daily SLM policy
@@ -36,11 +36,90 @@ scripts/setup-snapshots.sh
 
 ## Access
 
-| Service      | URL                                              |
-|--------------|--------------------------------------------------|
-| Kibana       | https://kibana.eck-on-aks.cascavel-security.net  |
-| Fleet Server | https://fleet.eck-on-aks.cascavel-security.net   |
-| APM Server   | https://apm.eck-on-aks.cascavel-security.net     |
+| Service | URL                                             |
+|---------|-------------------------------------------------|
+| Kibana  | https://kibana.eck-on-aks.cascavel-security.net |
+
+## DNS and Traffic Path
+
+**DNS resolution** for `kibana.eck-on-aks.cascavel-security.net`:
+
+1. The registrar delegates `cascavel-security.net` to Cloudflare nameservers.
+2. Cloudflare holds NS records delegating `eck-on-aks.cascavel-security.net` to Azure DNS (`ns1-06.azure-dns.com` etc.).
+3. Azure DNS holds the A record: `kibana → 20.8.140.168`.
+
+Cloudflare is not in the traffic path — it only redirects DNS lookups to Azure DNS. Once the browser resolves the IP, all traffic goes directly to Azure.
+
+**Traffic path** once the IP is resolved:
+
+```
+Browser (HTTPS)
+    → Azure Public IP (20.8.140.168)
+    → Azure Load Balancer (MC_* resource group, port 443)
+    → AKS node (nginx ingress pod in app-routing-system namespace)
+    → Kibana Service (ClusterIP, port 5601)
+    → Kibana pod
+```
+
+TLS is terminated at the nginx ingress using a Let's Encrypt certificate managed by cert-manager.
+
+## Day-2 Operations
+
+### Upgrading Elasticsearch version
+
+Change `elastic_version` in `variables.tf` (or pass `-var`), then re-apply. ECK performs a
+rolling upgrade automatically, respecting the `changeBudget` in the spec. Constraints:
+
+- You can only upgrade one major version at a time.
+- ECK operator 3.3.1 supports Elastic Stack 8.x and 9.x. If upgrading the operator itself,
+  update `eck_operator_version` in `variables.tf` first, apply, then update `elastic_version`.
+- Monitor progress: `kubectl get elasticsearch -n elastic-system -w`
+
+### Checking cluster health
+
+```bash
+# Elasticsearch health
+kubectl get elasticsearch -n elastic-system
+
+# Pod status
+kubectl get pods -n elastic-system
+
+# Elastic user password
+kubectl get secret elasticsearch-es-elastic-user -n elastic-system \
+  -o jsonpath='{.data.elastic}' | base64 -d
+
+# Tail operator logs
+kubectl logs -n elastic-system statefulset/elastic-operator -f
+```
+
+### Checking snapshot status
+
+```bash
+# After running scripts/setup-snapshots.sh, verify the repository
+curl -u "elastic:<password>" \
+  https://kibana.eck-on-aks.cascavel-security.net/api/snapshot_restore/repositories
+
+# Or via Kibana: Stack Management → Snapshot and Restore
+```
+
+### Scaling the cluster
+
+Change `count` in the `nodeSets` block in `eck.tf` and re-apply. With hard anti-affinity
+set, each ES pod requires its own AKS node — scale the node pool (`max_count` in `aks.tf`)
+before scaling ES, or pods will remain pending.
+
+### Troubleshooting TLS certificate issuance
+
+If Kibana returns a cert error on first deploy, check ACME challenge status:
+
+```bash
+kubectl describe certificate -n elastic-system
+kubectl describe certificaterequest -n elastic-system
+kubectl logs -n cert-manager deployment/cert-manager -f
+```
+
+The most common cause is DNS not yet propagated from Cloudflare to Azure DNS. Wait a few
+minutes and describe again — cert-manager retries automatically.
 
 ## Teardown
 
@@ -181,5 +260,5 @@ If the apply fails with a name conflict, set a unique `prefix` variable.
 | Stack Monitoring (dedicated monitoring cluster) | Out of scope for this demo |
 | Enterprise licence + autoscaling + per-role PDBs | Licence required |
 | Air-gapped / private registry | Not required in this environment |
-| Dedicated master nodes (3) + dedicated data nodes (3+) | Implemented — see NodeSets `master` and `data-hot` |
+| Dedicated master nodes (separate NodeSets) | Not applicable — Elastic docs recommend combined master+data roles for clusters of 3 nodes; dedicated masters only make sense at 5+ nodes |
 | Custom TLS CA | ECK auto-managed self-signed certs are acceptable here |

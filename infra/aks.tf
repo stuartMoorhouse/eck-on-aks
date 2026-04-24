@@ -17,7 +17,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     min_count                   = 1
     max_count                   = var.aks_node_count
     vm_size                     = var.aks_node_sku
-    enable_auto_scaling         = true
+    auto_scaling_enabled        = true
     zones                       = ["1", "2", "3"]
   }
 
@@ -27,8 +27,10 @@ resource "azurerm_kubernetes_cluster" "main" {
     type = "SystemAssigned"
   }
 
+  monitor_metrics {}
+
   web_app_routing {
-    dns_zone_id = azurerm_dns_zone.main.id
+    dns_zone_ids = []
   }
 }
 

@@ -24,12 +24,12 @@ done
 
 # Verify required environment variables are set
 missing=()
-[[ -z "${CLOUDFLARE_KEY:-}" ]]  && missing+=("CLOUDFLARE_KEY")
-[[ -z "${CLOUDFLARE_ZONE:-}" ]] && missing+=("CLOUDFLARE_ZONE")
+[[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]       && missing+=("CLOUDFLARE_API_TOKEN")
+[[ -z "${TF_VAR_cloudflare_zone_id:-}" ]]  && missing+=("TF_VAR_cloudflare_zone_id")
 if [[ ${#missing[@]} -gt 0 ]]; then
   echo "ERROR: Required environment variables are not set: ${missing[*]}"
-  echo "  export CLOUDFLARE_KEY=<cloudflare-api-token>"
-  echo "  export CLOUDFLARE_ZONE=<cloudflare-zone-id>"
+  echo "  export CLOUDFLARE_API_TOKEN=<cloudflare-api-token>"
+  echo "  export TF_VAR_cloudflare_zone_id=<cloudflare-zone-id>"
   exit 1
 fi
 
@@ -55,6 +55,29 @@ terraform apply -input=false -auto-approve \
   -target=azurerm_resource_group.main \
   -target=azurerm_kubernetes_cluster.main \
   -target=azurerm_dns_zone.main
+
+echo ""
+echo "Phase 2b: Remove DNS zone from App Routing (azurerm provider does not clear this)"
+echo "=================================================================================="
+# Terraform sets dns_zone_ids=[] but the AKS API silently ignores the removal, leaving
+# the App Routing operator deploying external-dns which crashes (no DNS write permissions).
+# This az call is idempotent: exits 0 when the zone is already absent.
+AKS_NAME=$(terraform output -raw aks_cluster_name)
+RG_NAME=$(terraform output -raw resource_group_name)
+DNS_ZONE_NAME=$(terraform output -raw dns_zone_name)
+DNS_ZONE_ID=$(az network dns zone show --resource-group "$RG_NAME" --name "$DNS_ZONE_NAME" --query id -o tsv)
+CURRENT_ZONES=$(az aks show --resource-group "$RG_NAME" --name "$AKS_NAME" \
+  --query "ingressProfile.webAppRouting.dnsZoneResourceIds" -o tsv 2>/dev/null || true)
+if [[ -n "$CURRENT_ZONES" ]]; then
+  az aks approuting zone delete \
+    --resource-group "$RG_NAME" \
+    --name "$AKS_NAME" \
+    --ids "$DNS_ZONE_ID" \
+    --yes > /dev/null
+  echo "App Routing DNS zone cleared."
+else
+  echo "App Routing DNS zone already absent; skipping."
+fi
 
 echo ""
 echo "Phase 3: Full apply (Cloudflare NS delegation, cert-manager, ECK)"

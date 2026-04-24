@@ -23,17 +23,16 @@ fi
 echo "Logged in. Subscription: $(az account show --query name -o tsv) ($REQUIRED_SUBSCRIPTION)"
 
 # Cloudflare credentials — read from shell env vars set in ~/.zshrc
-if [[ -z "${CLOUDFLARE_KEY:-}" ]]; then
-  echo "ERROR: CLOUDFLARE_KEY is not set. Export it in your environment before running."
+if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+  echo "ERROR: CLOUDFLARE_API_TOKEN is not set. Export it in your environment before running."
   exit 1
 fi
-if [[ -z "${CLOUDFLARE_ZONE:-}" ]]; then
-  echo "ERROR: CLOUDFLARE_ZONE is not set. Export it in your environment before running."
+if [[ -z "${TF_VAR_cloudflare_zone_id:-}" ]]; then
+  echo "ERROR: TF_VAR_cloudflare_zone_id is not set. Export it in your environment before running."
   exit 1
 fi
 
-export TF_VAR_cloudflare_api_token="$CLOUDFLARE_KEY"
-export TF_VAR_cloudflare_zone_id="$CLOUDFLARE_ZONE"
+export TF_VAR_cloudflare_api_token="$CLOUDFLARE_API_TOKEN"
 
 echo "Cloudflare credentials exported as TF_VAR_cloudflare_api_token and TF_VAR_cloudflare_zone_id."
 echo "Ready to run: cd infra && terraform init && terraform apply"

@@ -28,3 +28,8 @@ output "kubeconfig_command" {
   description = "Command to merge AKS credentials into ~/.kube/config"
   value       = "az aks get-credentials --resource-group ${azurerm_resource_group.main.name} --name ${azurerm_kubernetes_cluster.main.name}"
 }
+
+output "grafana_url" {
+  description = "Azure Managed Grafana endpoint"
+  value       = azurerm_dashboard_grafana.main.endpoint
+}
