@@ -142,8 +142,7 @@ cd infra && terraform destroy
 
 ## Production Readiness
 
-The settings below implement the ECK production checklist. Items marked **not applicable**
-are out of scope for this demo deployment (monitoring cluster, Enterprise licence, air-gapped).
+The settings below implement some best practices for ECK in production. 
 
 ### 1. vm.max_map_count
 
@@ -263,13 +262,3 @@ scripts/setup-snapshots.sh
 
 The storage account name `eckonakssnapshots` must be globally unique across Azure.
 If the apply fails with a name conflict, set a unique `prefix` variable.
-
-### Items not implemented
-
-| Item | Reason |
-|------|--------|
-| Stack Monitoring (dedicated monitoring cluster) | Out of scope for this demo |
-| Enterprise licence + autoscaling + per-role PDBs | Licence required |
-| Air-gapped / private registry | Not required in this environment |
-| Dedicated master nodes (separate NodeSets) | Not applicable — Elastic docs recommend combined master+data roles for clusters of 3 nodes; dedicated masters only make sense at 5+ nodes |
-| Custom TLS CA | ECK auto-managed self-signed certs are acceptable here |
