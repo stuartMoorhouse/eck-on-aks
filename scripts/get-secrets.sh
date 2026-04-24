@@ -4,7 +4,11 @@
 
 set -euo pipefail
 
-REQUIRED_SUBSCRIPTION="YOUR_SUBSCRIPTION_ID"
+if [[ -z "${TF_VAR_subscription_id:-}" ]]; then
+  echo "ERROR: TF_VAR_subscription_id is not set. Export it before running:"
+  echo "  export TF_VAR_subscription_id=<your-subscription-id>"
+  exit 1
+fi
 
 echo "Checking Azure CLI login..."
 CURRENT=$(az account show --query id -o tsv 2>/dev/null || true)
@@ -15,12 +19,12 @@ if [[ -z "$CURRENT" ]]; then
   CURRENT=$(az account show --query id -o tsv)
 fi
 
-if [[ "$CURRENT" != "$REQUIRED_SUBSCRIPTION" ]]; then
-  echo "Wrong subscription ($CURRENT). Switching to $REQUIRED_SUBSCRIPTION..."
-  az account set --subscription "$REQUIRED_SUBSCRIPTION"
+if [[ "$CURRENT" != "$TF_VAR_subscription_id" ]]; then
+  echo "Wrong subscription ($CURRENT). Switching to $TF_VAR_subscription_id..."
+  az account set --subscription "$TF_VAR_subscription_id"
 fi
 
-echo "Logged in. Subscription: $(az account show --query name -o tsv) ($REQUIRED_SUBSCRIPTION)"
+echo "Logged in. Subscription: $(az account show --query name -o tsv) ($TF_VAR_subscription_id)"
 
 # Cloudflare credentials — read from shell env vars set in ~/.zshrc
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then

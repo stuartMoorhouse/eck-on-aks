@@ -26,10 +26,14 @@ done
 missing=()
 [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]       && missing+=("CLOUDFLARE_API_TOKEN")
 [[ -z "${TF_VAR_cloudflare_zone_id:-}" ]]  && missing+=("TF_VAR_cloudflare_zone_id")
+[[ -z "${TF_VAR_subscription_id:-}" ]]     && missing+=("TF_VAR_subscription_id")
+[[ -z "${TF_VAR_tenant_id:-}" ]]           && missing+=("TF_VAR_tenant_id")
 if [[ ${#missing[@]} -gt 0 ]]; then
   echo "ERROR: Required environment variables are not set: ${missing[*]}"
   echo "  export CLOUDFLARE_API_TOKEN=<cloudflare-api-token>"
   echo "  export TF_VAR_cloudflare_zone_id=<cloudflare-zone-id>"
+  echo "  export TF_VAR_subscription_id=<azure-subscription-id>"
+  echo "  export TF_VAR_tenant_id=<azure-tenant-id>"
   exit 1
 fi
 

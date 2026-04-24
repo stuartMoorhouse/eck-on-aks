@@ -14,7 +14,7 @@ managed with Terraform.
 
 ## Prerequisites
 
-- Azure CLI (`az login` with access to subscription `YOUR_SUBSCRIPTION_ID`)
+- Azure CLI (`az login`); set `TF_VAR_subscription_id` and `TF_VAR_tenant_id` in your environment
 - `kubectl`, `terraform`, `helm`
 - Cloudflare API token exported as `TF_VAR_cloudflare_zone_id`
 

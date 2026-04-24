@@ -1,13 +1,11 @@
 variable "subscription_id" {
-  description = "Azure subscription ID"
+  description = "Azure subscription ID — set via TF_VAR_subscription_id or terraform.tfvars"
   type        = string
-  default     = "YOUR_SUBSCRIPTION_ID"
 }
 
 variable "tenant_id" {
-  description = "Azure tenant ID (Elastic: YOUR_TENANT_ID)"
+  description = "Azure tenant ID — set via TF_VAR_tenant_id or terraform.tfvars"
   type        = string
-  default     = "YOUR_TENANT_ID"
 }
 
 variable "location" {
