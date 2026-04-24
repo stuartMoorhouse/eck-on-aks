@@ -239,17 +239,19 @@ updateStrategy:
 
 ECK installs a PreStop hook automatically. `PRE_STOP_ADDITIONAL_WAIT_SECONDS=50` gives
 in-flight requests time to drain and kube-proxy time to sync endpoint removal before
-the ES process shuts down. 50 s covers the default kube-proxy resync interval.
+the ES process shuts down. The default wait is 50s, which provides buffer beyond the 30s kube-proxy sync period to also accommodate in-flight requests and DNS propagation lag
 
 ### 9. Snapshots (Azure Blob Storage)
 
 Automated backups via the `repository-azure` plugin (built into Elasticsearch):
 
 **Terraform provisions:**
+(Please note: the recommended authentication approach is to use Azure Workload Identity, not applied here due to common security limitations on Azure user permissions)
+
 - `azurerm_storage_account` (`eckonakssnapshots`) — Standard LRS
 - `azurerm_storage_container` (`elasticsearch-snapshots`)
 - Kubernetes secret `elasticsearch-snapshot-credentials` with account name + key,
-  injected into the ES keystore via `spec.secureSettings`
+  injected into the ES keystore via `spec.secureSettings` 
 
 **Post-deploy (`scripts/setup-snapshots.sh`):**
 - Registers the `azure-backup` snapshot repository
