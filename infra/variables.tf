@@ -21,9 +21,8 @@ variable "prefix" {
 }
 
 variable "dns_zone_name" {
-  description = "Azure DNS zone to create (subdomain of your Cloudflare-managed domain)"
+  description = "Azure DNS zone to create (subdomain of your Cloudflare-managed domain, e.g. eck.example.com)"
   type        = string
-  default     = "eck-on-aks.cascavel-security.net"
 }
 
 variable "cloudflare_zone_id" {
@@ -65,7 +64,6 @@ variable "cert_manager_version" {
 variable "acme_contact_email" {
   description = "Email address for Let's Encrypt ACME account notifications"
   type        = string
-  default     = "stuart.moorhouse@elastic.co"
 }
 
 variable "tags" {

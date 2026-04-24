@@ -28,12 +28,16 @@ missing=()
 [[ -z "${TF_VAR_cloudflare_zone_id:-}" ]]  && missing+=("TF_VAR_cloudflare_zone_id")
 [[ -z "${TF_VAR_subscription_id:-}" ]]     && missing+=("TF_VAR_subscription_id")
 [[ -z "${TF_VAR_tenant_id:-}" ]]           && missing+=("TF_VAR_tenant_id")
+[[ -z "${TF_VAR_dns_zone_name:-}" ]]       && missing+=("TF_VAR_dns_zone_name")
+[[ -z "${TF_VAR_acme_contact_email:-}" ]]  && missing+=("TF_VAR_acme_contact_email")
 if [[ ${#missing[@]} -gt 0 ]]; then
   echo "ERROR: Required environment variables are not set: ${missing[*]}"
   echo "  export CLOUDFLARE_API_TOKEN=<cloudflare-api-token>"
   echo "  export TF_VAR_cloudflare_zone_id=<cloudflare-zone-id>"
   echo "  export TF_VAR_subscription_id=<azure-subscription-id>"
   echo "  export TF_VAR_tenant_id=<azure-tenant-id>"
+  echo "  export TF_VAR_dns_zone_name=<subdomain, e.g. eck.example.com>"
+  echo "  export TF_VAR_acme_contact_email=<your-email>"
   exit 1
 fi
 

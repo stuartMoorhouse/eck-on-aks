@@ -8,15 +8,24 @@ managed with Terraform.
 - **AKS cluster**: 3 nodes (`Standard_D4s_v3`, 4 vCPU / 16 GB), multi-zone
 - **ECK operator**: v3.3.1, manages Elasticsearch and Kibana
 - **Elasticsearch**: 3-node cluster, all nodes master-eligible + data (combined roles per Elastic docs best practice for clusters of this size)
-- **DNS**: Azure DNS zone delegated from Cloudflare; `*.eck-on-aks.cascavel-security.net`
+- **DNS**: Azure DNS zone delegated from Cloudflare; subdomain set via `dns_zone_name` variable
 - **TLS**: Let's Encrypt via cert-manager + Azure App Routing ingress
 - **Snapshots**: Azure Blob Storage, daily SLM policy
 
 ## Prerequisites
 
-- Azure CLI (`az login`); set `TF_VAR_subscription_id` and `TF_VAR_tenant_id` in your environment
-- `kubectl`, `terraform`, `helm`
-- Cloudflare API token exported as `TF_VAR_cloudflare_zone_id`
+- Azure CLI (`az login`), `kubectl`, `terraform`, `helm`
+- Cloudflare account with a domain you control
+- The following environment variables set before running `scripts/deploy.sh`:
+
+```bash
+export TF_VAR_subscription_id=<azure-subscription-id>
+export TF_VAR_tenant_id=<azure-tenant-id>
+export TF_VAR_dns_zone_name=<subdomain-to-create, e.g. eck.example.com>
+export TF_VAR_acme_contact_email=<your-email>
+export CLOUDFLARE_API_TOKEN=<cloudflare-api-token>
+export TF_VAR_cloudflare_zone_id=<cloudflare-zone-id-for-your-root-domain>
+```
 
 ## Deploy
 
@@ -36,17 +45,19 @@ scripts/setup-snapshots.sh
 
 ## Access
 
-| Service | URL                                             |
-|---------|-------------------------------------------------|
-| Kibana  | https://kibana.eck-on-aks.cascavel-security.net |
+| Service | URL                                        |
+|---------|--------------------------------------------|
+| Kibana  | `https://kibana.<dns_zone_name>`           |
+
+`<dns_zone_name>` is the value of the `dns_zone_name` Terraform variable (e.g. `eck.example.com`).
 
 ## DNS and Traffic Path
 
-**DNS resolution** for `kibana.eck-on-aks.cascavel-security.net`:
+**DNS resolution** for `kibana.<dns_zone_name>`:
 
-1. The registrar delegates `cascavel-security.net` to Cloudflare nameservers.
-2. Cloudflare holds NS records delegating `eck-on-aks.cascavel-security.net` to Azure DNS (`ns1-06.azure-dns.com` etc.).
-3. Azure DNS holds the A record: `kibana → 20.8.140.168`.
+1. The registrar delegates `<your-root-domain>` to Cloudflare nameservers.
+2. Cloudflare holds NS records delegating `<dns_zone_name>` to Azure DNS (Terraform creates this delegation automatically).
+3. Azure DNS holds the A record: `kibana → <load-balancer-ip>` (assigned by Azure on deploy).
 
 Cloudflare is not in the traffic path — it only redirects DNS lookups to Azure DNS. Once the browser resolves the IP, all traffic goes directly to Azure.
 
@@ -54,7 +65,7 @@ Cloudflare is not in the traffic path — it only redirects DNS lookups to Azure
 
 ```
 Browser (HTTPS)
-    → Azure Public IP (20.8.140.168)
+    → Azure Public IP (<load-balancer-ip>)
     → Azure Load Balancer (MC_* resource group, port 443)
     → AKS node (nginx ingress pod in app-routing-system namespace)
     → Kibana Service (ClusterIP, port 5601)
@@ -96,8 +107,8 @@ kubectl logs -n elastic-system statefulset/elastic-operator -f
 
 ```bash
 # After running scripts/setup-snapshots.sh, verify the repository
-curl -u "elastic:<password>" \
-  https://kibana.eck-on-aks.cascavel-security.net/api/snapshot_restore/repositories
+KIBANA_URL=$(cd infra && terraform output -raw kibana_url)
+curl -u "elastic:<password>" "$KIBANA_URL/api/snapshot_restore/repositories"
 
 # Or via Kibana: Stack Management → Snapshot and Restore
 ```
